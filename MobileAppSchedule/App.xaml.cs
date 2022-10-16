@@ -1,7 +1,5 @@
 ﻿using MobileAppSchedule.View;
-using System;
 using Xamarin.Forms;
-using Xamarin.Forms.Xaml;
 
 namespace MobileAppSchedule
 {
@@ -11,11 +9,12 @@ namespace MobileAppSchedule
         {
             InitializeComponent();
 
-            MainPage = new MainPage();
+            MainPage = new SchedulePage();
         }
 
         protected override void OnStart()
         {
+
         }
 
         protected override void OnSleep()
