@@ -9,7 +9,7 @@ namespace MobileAppSchedule
         {
             InitializeComponent();
 
-            MainPage = new SchedulePage();
+            MainPage = new NavigationPage(new SchedulePage());
         }
 
         protected override void OnStart()
