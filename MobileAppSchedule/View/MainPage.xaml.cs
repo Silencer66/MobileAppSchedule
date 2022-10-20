@@ -1,4 +1,6 @@
-﻿using Xamarin.Forms;
+﻿using MobileAppSchedule.Services;
+using MobileAppSchedule.ViewModel;
+using Xamarin.Forms;
 
 namespace MobileAppSchedule.View
 {
@@ -7,6 +9,7 @@ namespace MobileAppSchedule.View
         public MainPage()
         {
             InitializeComponent();
+            BindingContext = new MainViewModel(new PageService());
         }
     }
 }

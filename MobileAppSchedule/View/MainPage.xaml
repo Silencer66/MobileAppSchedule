@@ -4,16 +4,23 @@
              x:Class="MobileAppSchedule.View.MainPage"
              xmlns:vms="clr-namespace:MobileAppSchedule.ViewModel"
              xmlns:fontAwesome="clr-namespace:FontAwesome;assembly=MobileAppSchedule"
-             x:DataType="vms:MainViewModel">
+             x:DataType="vms:MainViewModel"
+             Title="Расписание">
 
-    <ContentPage.BindingContext>
-        <vms:MainViewModel/>
-    </ContentPage.BindingContext>
-        <StackLayout Spacing="5">
+    <ContentPage.Content>
+        <StackLayout>
+            <StackLayout Orientation="Horizontal">
+                <Button FontFamily="FAS" CornerRadius="40" Margin="4"
+                    Text="{x:Static fontAwesome:FontAwesomeIcons.Gear}" 
+                    Command="{Binding SettingsCommand}"/>
+                <Label x:Name="GroupName" FontFamily="NSB" FontSize="30" 
+                   Text="{Binding GroupName}"
+                   VerticalOptions="Start" 
+                   HorizontalOptions="Start" />
+            </StackLayout>
 
-            <Label VerticalTextAlignment="Center" TextColor="Black" FontSize="40" Text="Выбери свою группу"/>
 
-        <Button HorizontalOptions="Center"
-                Text="{x:Static fontAwesome:FontAwesomeIcons.AddressBook}"/>
-    </StackLayout>
+        </StackLayout>
+    </ContentPage.Content>
+
 </ContentPage>
