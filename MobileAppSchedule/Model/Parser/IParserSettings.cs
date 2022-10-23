@@ -1,10 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace MobileAppSchedule.Model.Parser
 {
-    internal interface IParserSettings
+    interface IParserSettings
     {
+        string BaseUrl { get; set; }
+
+        List<string> GroupNames { get; set; }
+
+        string ContentType { get; set; }
     }
 }
