@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using System.Windows.Input;
+using MobileAppSchedule.Model.ScheduleModel;
 using MobileAppSchedule.Services;
 using MobileAppSchedule.View;
 using MobileAppSchedule.ViewModel.Base;
@@ -9,19 +10,51 @@ namespace MobileAppSchedule.ViewModel
 {
     internal class MainViewModel : BaseViewModel
     {
-        public string GroupName { get; set; } = "2бАСУ-3";
-        public ICommand SettingsCommand { get; set; }
+        private readonly Model.Model _model;
         private IPageService _pageService;
+        private Schedule _schedule;
+        #region Свойства
 
-        public MainViewModel(IPageService pageService)
+        #region GroupName
+        private string _groupName;
+        public string GroupName
         {
-            _pageService = pageService;
-            SettingsCommand = new Command(async () => await ToSettingsPage());
+            get => _groupName;
+            set => Set<string>(ref _groupName, value);
         }
 
+        #endregion
+
+
+        #endregion
+
+
+        #region Команды
+
+        #region SettingsCommand
+        public ICommand SettingsCommand { get; set; }
         private async Task ToSettingsPage()
         {
-            await _pageService.PushAsync(new SettingsPage());
+            await _pageService.PushAsync(new SettingsPage()
+            {
+                BindingContext = new SettingsViewModel(_model)
+            });
+        }
+        #endregion
+
+
+        #endregion
+
+        public MainViewModel(Model.Model model)
+        {
+            _model = model;
+            _schedule = model.Schedule;
+            GroupName = _schedule.GroupName;
+            _pageService = model.PageService;
+
+            #region Команды
+            SettingsCommand = new Command(async () => await ToSettingsPage());
+            #endregion
         }
     }
 }

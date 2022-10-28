@@ -10,7 +10,6 @@ namespace MobileAppSchedule.View
         public SettingsPage()
         {
             InitializeComponent();
-            BindingContext = new SettingsViewModel();
         }
     }
 }

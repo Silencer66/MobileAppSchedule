@@ -1,19 +1,43 @@
-﻿using MobileAppSchedule.View;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using AngleSharp.Html.Parser;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using MobileAppSchedule.Model.ScheduleModel;
+using MobileAppSchedule.Services;
+using MobileAppSchedule.View;
+using MobileAppSchedule.ViewModel;
 using Xamarin.Forms;
 
 namespace MobileAppSchedule
 {
     public partial class App : Application
     {
+        readonly string url = "https://www.madi.ru/tplan/tasks/task3,7_fastview.php";
+        private IPageService _pageService;
+        private Schedule _schedule;
+        private List<string> _groupNames;
+        private Model.Model _model;
+
         public App()
         {
+            _pageService = new PageService();
+            _schedule = new Schedule();
+            _groupNames = new List<string>();
             InitializeComponent();
-            MainPage = new NavigationPage(new MainPage());
         }
 
         protected override void OnStart()
         {
-
+            _groupNames = Task.Run(() => GetGroupNames(new HttpClient()).GetAwaiter().GetResult()).Result;
+            _model = new Model.Model(_schedule, _groupNames, _pageService);
+            MainPage = new NavigationPage(new MainPage()
+            {
+                BindingContext = new MainViewModel(_model)
+            });
         }
 
         protected override void OnSleep()
@@ -22,6 +46,37 @@ namespace MobileAppSchedule
 
         protected override void OnResume()
         {
+        }
+
+        private async Task<List<string>> GetGroupNames(HttpClient httpClient)
+        {
+            var response = await httpClient.GetAsync(url);
+            if (response == null || response.StatusCode != HttpStatusCode.OK)
+            {
+                Console.WriteLine("Ответ пустой");
+            }
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            var domParser = new HtmlParser();
+            var document = await domParser.ParseDocumentAsync(responseBody);
+            //*****************************************************************//
+
+            var sourceString = document.Source.Text;
+            var array = sourceString.Split("value=\"", StringSplitOptions.None).ToList();
+            array.RemoveAt(0);
+            Regex rg = new Regex(">([\\s\\S]+?)<");
+
+            var resultList = new List<string>();
+            foreach (var item in array)
+            {
+                var res_string = "tab=7&gp_name=";
+                string id = item.Substring(0, 4);
+                string name = rg.Match(item).ToString().TrimEnd(new char[] { '<' }).TrimStart(new char[] { '>' });
+
+                res_string += name + "&gp_id=" + id;
+                resultList.Add(res_string);
+            }
+            return resultList;
         }
     }
 }

@@ -8,10 +8,11 @@
              Title="Расписание">
 
     <ContentPage.Content>
-        <StackLayout Spacing="5">
-            <Label VerticalTextAlignment="Center" TextColor="Black" FontSize="40" Text="Выбери свою группу"/>
-            <Button HorizontalOptions="Center"
-                    Text="{x:Static fontAwesome:FontAwesomeIcons.AddressBook}"/>
+        <StackLayout Spacing="5" VerticalOptions="Center">
+            <Picker Title="Выбери группу"
+                    FontFamily="FAB" HorizontalTextAlignment="Center"
+                    ItemsSource="{Binding GroupNames}" 
+                    SelectedIndex="{Binding }"/>
         </StackLayout>
     </ContentPage.Content>
 

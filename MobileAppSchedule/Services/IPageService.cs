@@ -3,7 +3,7 @@ using Xamarin.Forms;
 
 namespace MobileAppSchedule.Services
 {
-    internal interface IPageService
+    public interface IPageService
     {
         Task PushAsync(Page page);
         Task PushModalAsync(Page page);

@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using MobileAppSchedule.View;
 using Xamarin.Forms;
 
 namespace MobileAppSchedule.Services

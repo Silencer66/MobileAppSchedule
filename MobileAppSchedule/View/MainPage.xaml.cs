@@ -9,7 +9,6 @@ namespace MobileAppSchedule.View
         public MainPage()
         {
             InitializeComponent();
-            BindingContext = new MainViewModel(new PageService());
         }
     }
 }
