@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using MobileAppSchedule.Model.ScheduleModel;
 using MobileAppSchedule.ViewModel.Base;
 
@@ -10,16 +12,26 @@ namespace MobileAppSchedule.ViewModel
         private Schedule _schedule;
 
         #region Свойства
-        public IList<string> GroupNames { get; set; }
+        public ObservableCollection<string> GroupNames { get; set; }
 
-        private int _groupIndex;
-        public int GroupIndex
+        private string _selectedGroup;
+        public string SelectedGroup
         {
-            get => _groupIndex;
+            get => _selectedGroup;
             set
             {
-                Set(ref _groupIndex, value);
-                //Здесь нужно запарсить сайт 
+                Set(ref _selectedGroup, value);
+                //Здесь нужно запарсить сайт
+
+                object name = "";
+                App.Current.Properties.TryGetValue("group_name", out name);
+                if (name == null || name.ToString() != _selectedGroup)
+                {
+                    //парсим и меняем значение в словаре
+                    App.Current.Properties["group_name"] = _selectedGroup;
+                    App.Current.SavePropertiesAsync().GetAwaiter();
+                }
+
             }
         }
         #endregion
@@ -30,10 +42,20 @@ namespace MobileAppSchedule.ViewModel
         public SettingsViewModel(Model.Model model)
         {
             _model = model;
-            GroupNames = model.GroupNames;
+            GroupNames = new ObservableCollection<string>();
+            GetGroupNames(model.GroupNames);
 
             #region Команды
             #endregion
+        }
+
+        private void GetGroupNames(List<string> names)
+        {
+            foreach (var groupName in names)
+            {
+                //var group = Regex.Matches(groupName, @"[\d\s\w]*")[6];
+                GroupNames.Add(Regex.Matches(groupName, @"[\d\s\w]*")[6].ToString());
+            }
         }
     }
 }

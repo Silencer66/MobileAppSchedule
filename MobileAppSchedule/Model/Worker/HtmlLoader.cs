@@ -21,7 +21,6 @@ namespace MobileAppSchedule.Model.Worker
 
         public async Task<string> GetScheduleByGroupName(string payload)
         {
-
             using (var request = new HttpRequestMessage(HttpMethod.Post, url))
             {
                 HttpContent content = new StringContent(payload,
