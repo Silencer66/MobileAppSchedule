@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -10,6 +11,7 @@ using MobileAppSchedule.Model.ScheduleModel;
 using MobileAppSchedule.Services;
 using MobileAppSchedule.View;
 using MobileAppSchedule.ViewModel;
+using Xamarin.Essentials;
 using Xamarin.Forms;
 
 namespace MobileAppSchedule
@@ -32,7 +34,19 @@ namespace MobileAppSchedule
 
         protected override void OnStart()
         {
-            _groupNames = Task.Run(() => GetGroupNames(new HttpClient()).GetAwaiter().GetResult()).Result;
+            //Однократно загружаем список групп c сайта
+            if (!Properties.ContainsKey("group_list"))
+            {
+                _groupNames = Task.Run(() => GetGroupNames(new HttpClient()).GetAwaiter().GetResult()).Result;
+                Properties["group_list"] = "exists";
+                Current.SavePropertiesAsync().GetAwaiter();
+            }
+            else //Загружаем список из памяти
+            {
+                var path = FileSystem.CacheDirectory;
+                var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
+                _groupNames = ParseGroupNames(File.ReadAllText(fullpath));
+            }
             _model = new Model.Model(_schedule, _groupNames, _pageService);
             MainPage = new NavigationPage(new MainPage()
             {
@@ -59,9 +73,18 @@ namespace MobileAppSchedule
 
             var domParser = new HtmlParser();
             var document = await domParser.ParseDocumentAsync(responseBody);
-            //*****************************************************************//
-
             var sourceString = document.Source.Text;
+
+            //записываем спаршеную строку в файл
+            var path = FileSystem.CacheDirectory;
+            var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
+            File.WriteAllText(fullpath, sourceString);
+
+            return ParseGroupNames(sourceString);
+        }
+
+        private List<string> ParseGroupNames(string sourceString)
+        {
             var array = sourceString.Split("value=\"", StringSplitOptions.None).ToList();
             array.RemoveAt(0);
             Regex rg = new Regex(">([\\s\\S]+?)<");
