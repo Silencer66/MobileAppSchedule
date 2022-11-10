@@ -30,11 +30,11 @@ namespace MobileAppSchedule.Model.University
             //Получаем имя группы
             var groupName = document.QuerySelectorAll("table").Where(x => x.ClassName == "selectors").FirstOrDefault();
             schedule.GroupName = groupName.TextContent.Substring(groupName.TextContent.LastIndexOf("Группа:") + 10).Trim();
+            
 
-            //var dayse = document.All.Where(m => m.LocalName == "th" && m.ClassList.Contains("blue"));
-
-
-            var dayse = sourceString.Split("colspan=6>", StringSplitOptions.None).ToList<string>();
+            //var dayse = sourceString.Split("colspan=6>", StringSplitOptions.None).ToList<string>();
+            var dayse = new Regex("colspan=6>").Split(sourceString).ToList();
+            
             dayse.RemoveAt(0);
 
             //добавляем каждые день недели
@@ -43,8 +43,10 @@ namespace MobileAppSchedule.Model.University
                 string nameOfDay = day.Substring(0, day.IndexOf('<'));
                 List<Discipline> disciplines = new List<Discipline>();
 
-                //Распарсил название дня 
-                var sourceDisciplines = day.Split("<tr>", StringSplitOptions.None).ToList<string>();
+                
+                //var sourceDisciplines = day.Split("<tr>", StringSplitOptions.None).ToList<string>();
+                var sourceDisciplines = new Regex("<tr>").Split(day).ToList();
+
                 sourceDisciplines.RemoveAt(0);
                 sourceDisciplines.RemoveAt(0);
                 sourceDisciplines.RemoveAt(sourceDisciplines.Count - 1);
@@ -54,7 +56,9 @@ namespace MobileAppSchedule.Model.University
                     if (discipline.Contains("Полнодневные занятия"))
                         break;
 
-                    var str = discipline.Split("</td>\n\t<td>", StringSplitOptions.None).ToList();
+                    //var str = discipline.Split("</td>\n\t<td>", StringSplitOptions.None).ToList();
+                    var str = new Regex("</td>\n\t<td>").Split(discipline).ToList();
+
                     string period = discipline.Substring(discipline.IndexOf(">") + 1, 13);
                     string nameOfDiscipline = str[0].Substring(str[0].IndexOf("wrap") + 6);
                     string typeDescipline = str[1];
@@ -73,7 +77,7 @@ namespace MobileAppSchedule.Model.University
                     });
                 }
 
-                schedule.DaysOfWeek.Add(new DayOfWeek
+                schedule.Weekday.Add(new DayOfWeek
                 {
                     NameOfDay = nameOfDay,
                     Disciplines = disciplines
