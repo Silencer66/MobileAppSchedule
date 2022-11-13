@@ -8,10 +8,16 @@ namespace MobileAppSchedule.Model.ScheduleModel
         public string GroupName { get; set; }
 
         /// <summary> Список дней недели </summary>
-        public List<DayOfWeek> DaysOfWeek { get; set; }
+        public List<DayOfWeek> Weekday { get; set; }
         public Schedule()
         {
-            DaysOfWeek = new List<DayOfWeek>();
+            Weekday = new List<DayOfWeek>();
+        }
+
+        public override bool Equals(object obj)
+        {
+            Schedule other = obj as Schedule;
+            return (other != null && other.GroupName.Equals(GroupName));
         }
     }
 }

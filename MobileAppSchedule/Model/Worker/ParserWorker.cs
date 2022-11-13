@@ -1,15 +1,20 @@
 ﻿using AngleSharp.Html.Parser;
 using MobileAppSchedule.Model.Parser;
 using System;
+using System.IO;
 using System.Threading.Tasks;
+using Xamarin.Essentials;
 
 namespace MobileAppSchedule.Model.Worker
 {
     class ParserWorker<T> where T : class
     {
-        private bool _isLoad;
+        private bool _isLoad = false;
+        //Здесь будет UniversityParser
         IParser<T> parser;
+        //Здесь будет UniversitySettings
         IParserSettings parserSettings;
+
         HtmlLoader loader;
 
         #region Properties
@@ -52,21 +57,31 @@ namespace MobileAppSchedule.Model.Worker
 
         #endregion
 
-        public async Task LoadDataByGroupName()
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public async Task LoadDataByGroupName(int index)
         {
             _isLoad = true;
-            await Worker();
+            await Worker(index);
         }
 
-        public async Task Worker()
+        public async Task Worker(int index)
         {
-            var source = await loader.GetScheduleByGroupName(parserSettings.GroupNames[124]);
+            var source = await loader.GetScheduleByGroupName(parserSettings.GroupNames[index]);
             if (source == "Ответ пустой")
             {
                 OnComplete?.Invoke("Ответ пустой");
                 _isLoad = false;
                 return;
             }
+
+            //Заносим в память телефона 
+            var path = FileSystem.CacheDirectory;
+            var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
+            File.WriteAllText(fullpath, source);
 
             var domParser = new HtmlParser();
             var document = await domParser.ParseDocumentAsync(source);

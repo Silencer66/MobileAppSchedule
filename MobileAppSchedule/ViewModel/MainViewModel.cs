@@ -1,19 +1,26 @@
-﻿using System.Threading.Tasks;
-using System.Windows.Input;
+﻿using System.IO;
+using System.Threading.Tasks;
+using AngleSharp.Html.Parser;
 using MobileAppSchedule.Model.ScheduleModel;
-using MobileAppSchedule.Services;
-using MobileAppSchedule.View;
-using MobileAppSchedule.ViewModel.Base;
-using Xamarin.Forms;
+using Xamarin.Essentials;
+using DayOfWeek = MobileAppSchedule.Model.ScheduleModel.DayOfWeek;
+using MobileAppSchedule.Model.University;
+using MvvmHelpers;
+using BaseViewModel = MobileAppSchedule.ViewModel.Base.BaseViewModel;
 
 namespace MobileAppSchedule.ViewModel
 {
     internal class MainViewModel : BaseViewModel
     {
-        private readonly Model.Model _model;
-        private IPageService _pageService;
-        private Schedule _schedule;
-        #region Свойства
+        #region Properties
+
+        #region EmptyView
+        public string EmptyView  => "Список пуст! Выбери группу";
+        #endregion
+
+        public ObservableRangeCollection<Discipline> Disciplines { get; set; }
+
+        public ObservableRangeCollection<DayOfWeek> Weekday { get; set; }
 
         #region GroupName
         private string _groupName;
@@ -22,39 +29,75 @@ namespace MobileAppSchedule.ViewModel
             get => _groupName;
             set => Set<string>(ref _groupName, value);
         }
-
         #endregion
 
-
+        #region CurrentDay
+        public Discipline CurrentDay { get; set; }
         #endregion
 
-
-        #region Команды
-
-        #region SettingsCommand
-        public ICommand SettingsCommand { get; set; }
-        private async Task ToSettingsPage()
+        #region Schedule
+        private Schedule _schedule;
+        public Schedule Schedule
         {
-            await _pageService.PushAsync(new SettingsPage()
+            get => _schedule;
+            set
             {
-                BindingContext = new SettingsViewModel(_model)
-            });
+                Set(ref _schedule, value);
+
+                GroupName = _schedule.GroupName;
+
+                Weekday.Clear();
+                Weekday.AddRange(_schedule.Weekday);
+
+                //на понедельник (переопределить индексатор)
+                Disciplines.Clear();
+                Disciplines.AddRange(_schedule.Weekday[0].Disciplines);
+                
+            }
         }
         #endregion
 
 
         #endregion
 
-        public MainViewModel(Model.Model model)
+
+        #region Commands
+
+        #endregion
+
+        public MainViewModel()
         {
-            _model = model;
-            _schedule = model.Schedule;
-            GroupName = _schedule.GroupName;
-            _pageService = model.PageService;
+            #region Fields
+
+            Disciplines = new ObservableRangeCollection<Discipline>();
+            Weekday = new ObservableRangeCollection<DayOfWeek>();
+            _schedule = new Schedule();
+
+            #endregion
 
             #region Команды
-            SettingsCommand = new Command(async () => await ToSettingsPage());
             #endregion
+        }
+        public void OnAppearing()
+        {
+            //загружаем список из памяти и распаршиваем в объекты 
+            object name = "";
+            App.Current.Properties.TryGetValue("group_name", out name);
+            if (name == null || name.ToString() != GroupName)
+            {
+                var path = FileSystem.CacheDirectory;
+                var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
+
+                if (File.Exists(fullpath))
+                {
+                    var source = File.ReadAllText(fullpath);
+                    var domParser = new HtmlParser();
+                    var document = Task.Run(() => domParser.ParseDocumentAsync(source).GetAwaiter().GetResult()).Result;
+                    UniversityParser parser = new UniversityParser(new Schedule());
+
+                    Schedule = parser.Parse(document);
+                }
+            }
         }
     }
 }

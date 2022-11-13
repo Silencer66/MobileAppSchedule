@@ -4,21 +4,34 @@
              x:Class="MobileAppSchedule.View.MainPage"
              xmlns:vms="clr-namespace:MobileAppSchedule.ViewModel"
              xmlns:fontAwesome="clr-namespace:FontAwesome;assembly=MobileAppSchedule"
-             x:DataType="vms:MainViewModel"
-             Title="Расписание">
+             Title="{Binding Title}">
 
     <ContentPage.Content>
         <StackLayout>
             <StackLayout Orientation="Horizontal">
-                <Button FontFamily="FAS" CornerRadius="40" Margin="4"
-                    Text="{x:Static fontAwesome:FontAwesomeIcons.Gear}" 
-                    Command="{Binding SettingsCommand}"/>
-                <Label x:Name="GroupName" FontFamily="NSB" FontSize="30" 
-                   Text="{Binding GroupName}"
-                   VerticalOptions="Start" 
-                   HorizontalOptions="Start" />
-            </StackLayout>
 
+                <Label x:Name="GroupName" FontFamily="NSB" FontSize="30" 
+                       Text="{Binding GroupName}"
+                       VerticalOptions="Start" 
+                       HorizontalOptions="Start" />
+            </StackLayout>
+            <RefreshView IsRefreshing="{Binding IsBusy, Mode=TwoWay}">
+                <!--<ListView ItemsSource="{Binding }">
+                </ListView>-->
+                <CollectionView ItemsSource="{Binding Disciplines, Mode=TwoWay}" EmptyView="{Binding EmptyView}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate >
+                            <Grid RowDefinitions="*,*,*,*" ColumnDefinitions="Auto,*" Padding="15">
+                                <Image Grid.Row="0" Grid.Column="0" Grid.RowSpan="3" Source="Fuel" Margin="0,0,20,0"/>
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding NameOfDiscipline}" TextColor="Black" FontAttributes="Bold" FontSize="16" />
+                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding Frequency}" TextColor="Black" FontAttributes="Bold" FontSize="16" />
+                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding NameOfTeacher}" FontSize="15"/>
+                                <Label Grid.Row="3" Grid.Column="1" Text="{Binding AudienceNumber}" FontSize="15"/>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
 
         </StackLayout>
     </ContentPage.Content>

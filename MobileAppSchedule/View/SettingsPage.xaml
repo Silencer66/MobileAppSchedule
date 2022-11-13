@@ -1,19 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="MobileAppSchedule.View.SettingsPage" 
+             x:Class="MobileAppSchedule.View.SettingsPage"
              xmlns:vms="clr-namespace:MobileAppSchedule.ViewModel"
-             xmlns:fontAwesome="clr-namespace:FontAwesome;assembly=MobileAppSchedule" 
-             x:DataType="vms:SettingsViewModel"
-             Title="Расписание">
+             xmlns:fontAwesome="clr-namespace:FontAwesome;assembly=MobileAppSchedule"
+             Title="{Binding Title}"
+             x:DataType="vms:SettingsViewModel">
 
     <ContentPage.Content>
         <StackLayout Spacing="5" VerticalOptions="Center">
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               Color="DodgerBlue"/>
             <Picker Title="Выбери группу"
                     FontFamily="FAB" HorizontalTextAlignment="Center"
-                    ItemsSource="{Binding GroupNames}" 
-                    SelectedIndex="{Binding }"/>
+                    ItemsSource="{Binding GroupNames}"
+                    SelectedItem="{Binding SelectedGroup}"/>
         </StackLayout>
     </ContentPage.Content>
-
 </ContentPage>
