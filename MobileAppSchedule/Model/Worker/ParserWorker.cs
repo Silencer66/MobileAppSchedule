@@ -9,7 +9,6 @@ namespace MobileAppSchedule.Model.Worker
 {
     class ParserWorker<T> where T : class
     {
-        private bool _isLoad = false;
         //Здесь будет UniversityParser
         IParser<T> parser;
         //Здесь будет UniversitySettings
@@ -64,7 +63,6 @@ namespace MobileAppSchedule.Model.Worker
         /// <returns></returns>
         public async Task LoadDataByGroupName(int index)
         {
-            _isLoad = true;
             await Worker(index);
         }
 
@@ -74,7 +72,6 @@ namespace MobileAppSchedule.Model.Worker
             if (source == "Ответ пустой")
             {
                 OnComplete?.Invoke("Ответ пустой");
-                _isLoad = false;
                 return;
             }
 
@@ -87,8 +84,7 @@ namespace MobileAppSchedule.Model.Worker
             var document = await domParser.ParseDocumentAsync(source);
 
             var result = parser.Parse(document); //вернётся объект типа Schedule
-
-            _isLoad = false;
+            
             OnGroupSchedule?.Invoke(this, result);
             OnComplete?.Invoke("Ответ не пустой");
         }
