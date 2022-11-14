@@ -19,5 +19,10 @@ namespace MobileAppSchedule.Model.ScheduleModel
             Schedule other = obj as Schedule;
             return (other != null && other.GroupName.Equals(GroupName));
         }
+
+        public override int GetHashCode()
+        {
+            return GroupName.GetHashCode();
+        }
     }
 }
