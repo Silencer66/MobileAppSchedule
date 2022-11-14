@@ -36,9 +36,8 @@ namespace MobileAppSchedule.Model.Worker
 
         #region Events
         /// <summary> информирует о получении данных после парсинга распписания </summary>
-        public event Action<object, T> OnGroupSchedule;
-        /// <summary> Информирование при завершении работы парсера </summary>
-        public event Action<object> OnComplete;
+        public event Action<object, string> OnGroupSchedule;
+        public event Action<object, string> OnGroups;
         #endregion
 
         #region Constructors
@@ -61,32 +60,36 @@ namespace MobileAppSchedule.Model.Worker
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        public async Task LoadDataByGroupName(int index)
+        /// 
+        public async Task LoadScheduleByGroupName(int index)
         {
-            await Worker(index);
+            await GetSchedule(index);
+        }
+        public async Task LoadGroupNames()
+        {
+            await GetGroupNames();
         }
 
-        public async Task Worker(int index)
+
+        private async Task GetGroupNames()
+        {
+            var source = await loader.GetRowGroups();
+            if (source == "Ответ пустой")
+            {
+                OnGroups?.Invoke(this, "Ответ пустой");
+                return;
+            }
+            OnGroups?.Invoke(this, source);
+        }
+        public async Task GetSchedule(int index)
         {
             var source = await loader.GetScheduleByGroupName(parserSettings.GroupNames[index]);
             if (source == "Ответ пустой")
             {
-                OnComplete?.Invoke("Ответ пустой");
+                OnGroupSchedule?.Invoke(this, "Ответ пустой");
                 return;
             }
-
-            //Заносим в память телефона 
-            var path = FileSystem.CacheDirectory;
-            var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
-            File.WriteAllText(fullpath, source);
-
-            var domParser = new HtmlParser();
-            var document = await domParser.ParseDocumentAsync(source);
-
-            var result = parser.Parse(document); //вернётся объект типа Schedule
-            
-            OnGroupSchedule?.Invoke(this, result);
-            OnComplete?.Invoke("Ответ не пустой");
+            OnGroupSchedule?.Invoke(this, source);
         }
     }
 }

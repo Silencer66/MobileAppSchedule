@@ -39,5 +39,19 @@ namespace MobileAppSchedule.Model.Worker
                 return responseBody;
             }
         }
+        public async Task<string> GetRowGroups()
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var response = await httpClient.GetAsync(url);
+                if (response == null || response.StatusCode != HttpStatusCode.OK)
+                {
+                    return "Ответ пустой";
+                }
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                return responseBody;
+            }
+        }
     }
 }
