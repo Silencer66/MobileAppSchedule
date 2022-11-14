@@ -141,6 +141,12 @@ namespace MobileAppSchedule.ViewModel
         /// <summary> Парсит расписание по выбранной группе </summary>
         async void GetSchedule()
         {
+            if (Connectivity.NetworkAccess != NetworkAccess.Internet)
+            {
+                App.Current.MainPage.DisplayAlert("Расписание", "Невозможно загрузить расписание выбранной группы.\nПроверьте подключение к интернету", "Закрыть");
+                IsBusy = false;
+                return;
+            }
             UniversitySettings settings = new UniversitySettings(rowGroups);
             UniversityParser parser = new UniversityParser(_schedule);
 
@@ -173,12 +179,15 @@ namespace MobileAppSchedule.ViewModel
             {
                 if (Connectivity.NetworkAccess != NetworkAccess.Internet)
                 {
-                    DisplayAlert()
+                    App.Current.MainPage.DisplayAlert("Расписание", "Не удается загрузить список групп.\nПроверьте подключение к интернету", "Закрыть");
+                    IsBusy = false;
                     return;
                 }
+
                 rowGroups = Task.Run(() => GetRowGroups(new HttpClient()).GetAwaiter().GetResult()).Result;
                 App.Current.Properties["group_list"] = "exists";
                 App.Current.SavePropertiesAsync().GetAwaiter();
+                
             }
             else //Загружаем список из памяти
             {

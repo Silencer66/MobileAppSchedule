@@ -22,10 +22,10 @@
     </Shell.Resources>
 
     <TabBar>
-        <ShellContent Title="Настройки" Icon="settings.png" 
-                          ContentTemplate="{DataTemplate views:SettingsPage}"/>
         <ShellContent Title="Расписание" Icon="schedule.png" 
-                          ContentTemplate="{DataTemplate views:MainPage}" />
+                      ContentTemplate="{DataTemplate views:MainPage}" />
+        <ShellContent Title="Настройки" Icon="settings.png" 
+                      ContentTemplate="{DataTemplate views:SettingsPage}"/>
     </TabBar>
 
 
