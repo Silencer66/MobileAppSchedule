@@ -6,14 +6,13 @@ using System.Text.RegularExpressions;
 using MobileAppSchedule.ViewModel.Base;
 using System.Threading.Tasks;
 using Xamarin.Essentials;
-using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 using MobileAppSchedule.Model.University;
 using MobileAppSchedule.Model.Worker;
-using System.Linq;
 using System.Net.Http;
 using System.Net;
 using System;
+using Path = System.IO.Path;
 
 namespace MobileAppSchedule.ViewModel
 {
@@ -27,12 +26,14 @@ namespace MobileAppSchedule.ViewModel
         #endregion
 
         #region Свойства
+
+        #region GroupNames
         public ObservableCollection<string> GroupNames { get; set; }
+        #endregion
 
         #region Schedule
 
         private Schedule _schedule;
-
         public Schedule Schedule
         {
             get => _schedule;
@@ -59,87 +60,31 @@ namespace MobileAppSchedule.ViewModel
 
                     IsBusy = true;
 
-                    GetSchedule();
+                    GetScheduleAsync();
                 }
             }
         }
         #endregion
 
         #endregion
+        
 
-        #region Команды
-
-        #endregion
         public SettingsViewModel()
         {
-            #region Properties
+            #region Fields
             Schedule = new Schedule();
             GroupNames = new ObservableCollection<string>();
+            rowGroups = new List<string>();
+            Title = "Расписание";
             #endregion
-
 
             #region Команды
             #endregion
         }
 
-        /// <summary> Преобразует список групп к нормальному виду </summary>
-        /// <param name="names"></param>
-        private void GetGroupNames(List<string> names)
-        {
-            foreach (var groupName in names)
-            {
-                //var group = Regex.Matches(groupName, @"[\d\s\w]*")[6];
-                GroupNames.Add(Regex.Matches(groupName, @"[\d\s\w]*")[6].ToString());
-            }
-        }
-        /// <summary> Скачивает с сайта список всех групп </summary>
-        /// <param name="httpClient"></param>
-        /// <returns>Возвращает список в сыром виде</returns>
-        private async Task<List<string>> GetRowGroups(HttpClient httpClient)
-        {
-            var response = await httpClient.GetAsync(url);
-            if (response == null || response.StatusCode != HttpStatusCode.OK)
-            {
-                Console.WriteLine("Ответ пустой");
-            }
-            var responseBody = await response.Content.ReadAsStringAsync();
 
-            var domParser = new HtmlParser();
-            var document = await domParser.ParseDocumentAsync(responseBody);
-            var sourceString = document.Source.Text;
-
-            //записываем спаршеную строку в файл
-            var path = FileSystem.CacheDirectory;
-            var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
-            File.WriteAllText(fullpath, sourceString);
-
-            return ParseGroupNames(sourceString);
-        }
-
-        private List<string> ParseGroupNames(string sourceString)
-        {
-            //var array = sourceString.Split("value=\"", StringSplitOptions.None).ToList();
-            var array = new Regex("value=\"").Split(sourceString).ToList();
-            array.RemoveAt(0);
-            Regex rg = new Regex(">([\\s\\S]+?)<");
-
-            var resultList = new List<string>();
-            foreach (var item in array)
-            {
-                var res_string = "tab=7&gp_name=";
-                string id = item.Substring(0, 4);
-                string name = rg.Match(item).ToString().TrimEnd(new char[] { '<' }).TrimStart(new char[] { '>' });
-
-                res_string += name + "&gp_id=" + id;
-                resultList.Add(res_string);
-            }
-            return resultList;
-        }
-
-
-        
         /// <summary> Парсит расписание по выбранной группе </summary>
-        async void GetSchedule()
+        private async void GetScheduleAsync()
         {
             if (Connectivity.NetworkAccess != NetworkAccess.Internet)
             {
@@ -147,28 +92,17 @@ namespace MobileAppSchedule.ViewModel
                 IsBusy = false;
                 return;
             }
+
             UniversitySettings settings = new UniversitySettings(rowGroups);
             UniversityParser parser = new UniversityParser(_schedule);
-
             ParserWorker<Schedule> worker = new ParserWorker<Schedule>(parser, settings);
 
-            worker.OnComplete += OnCompleteParse;
-            worker.OnGroupSchedule += OnNewDataParse;
-
-            await worker.LoadDataByGroupName(GroupNames.IndexOf(_selectedGroup));
-            //Task.Run(() => worker.LoadDataByGroupName(GroupNames.IndexOf(_selectedGroup)).GetAwaiter());
+            worker.OnGroupSchedule += OnNewSchedule;
+            await worker.LoadScheduleByGroupName(GroupNames.IndexOf(_selectedGroup));
         }
-
-
-        private void OnNewDataParse(object obj, Schedule schedule)
-        {
-            _schedule = schedule;
-        }
-        private void OnCompleteParse(object obj)
-        {
-            IsBusy = false;
-        }
-        public void OnAppearing()
+     
+        
+        public async void OnAppearing()
         {
             if (GroupNames.Count > 0)
                 return;
@@ -184,19 +118,53 @@ namespace MobileAppSchedule.ViewModel
                     return;
                 }
 
-                rowGroups = Task.Run(() => GetRowGroups(new HttpClient()).GetAwaiter().GetResult()).Result;
+                UniversityParser parser = new UniversityParser(Schedule);
+                UniversitySettings settings = new UniversitySettings(rowGroups);
+
+                ParserWorker<Schedule> worker = new ParserWorker<Schedule>(parser, settings);
+                worker.OnGroups += OnListGroups;
+
+                await worker.LoadGroupNames();
+
                 App.Current.Properties["group_list"] = "exists";
                 App.Current.SavePropertiesAsync().GetAwaiter();
-                
             }
             else //Загружаем список из памяти
             {
                 var path = FileSystem.CacheDirectory;
                 var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
-                rowGroups = ParseGroupNames(File.ReadAllText(fullpath));
+
+                OnListGroups(this, File.ReadAllText(fullpath));
             }
+        }
+
+        private void OnNewSchedule(object obj, string source)
+        {
+            var path = FileSystem.CacheDirectory;
+            var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
+            File.WriteAllText(fullpath, source);
+            Title = "Расписание " + SelectedGroup;
+            IsBusy = false;
+        }
+
+        private async void OnListGroups(object obj, string source)
+        {
+            UniversityParser parser = new UniversityParser();
+
+            var domParser = new HtmlParser();
+            var document = await domParser.ParseDocumentAsync(source);
+
+            rowGroups = parser.ParseGroupNames(document);
             GetGroupNames(rowGroups);
             IsBusy = false;
+        }
+
+        /// <summary> Преобразует список групп к нормальному виду </summary>
+        /// <param name="names"></param>
+        private void GetGroupNames(List<string> names)
+        {
+            foreach (var groupName in names)
+                GroupNames.Add(Regex.Matches(groupName, @"[\d\s\w]*")[6].ToString());
         }
     }
 }

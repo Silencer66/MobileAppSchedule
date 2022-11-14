@@ -6,6 +6,7 @@ using Xamarin.Essentials;
 using DayOfWeek = MobileAppSchedule.Model.ScheduleModel.DayOfWeek;
 using MobileAppSchedule.Model.University;
 using MvvmHelpers;
+using MvvmHelpers.Commands;
 using BaseViewModel = MobileAppSchedule.ViewModel.Base.BaseViewModel;
 
 namespace MobileAppSchedule.ViewModel
@@ -63,21 +64,35 @@ namespace MobileAppSchedule.ViewModel
 
         #region Commands
 
+        public AsyncCommand RefreshCommand { get; }
+
         #endregion
 
         public MainViewModel()
         {
             #region Fields
 
+            Title = "Расписание";
             Disciplines = new ObservableRangeCollection<Discipline>();
             Weekday = new ObservableRangeCollection<DayOfWeek>();
             _schedule = new Schedule();
 
             #endregion
 
-            #region Команды
+            #region Commands
+            RefreshCommand = new AsyncCommand(Refresh);
             #endregion
         }
+        async Task Refresh()
+        {
+            IsBusy = true;
+
+            OnAppearing();
+
+            IsBusy = false;
+        }
+
+
         public void OnAppearing()
         {
             //загружаем список из памяти и распаршиваем в объекты 
@@ -95,7 +110,8 @@ namespace MobileAppSchedule.ViewModel
                     var document = Task.Run(() => domParser.ParseDocumentAsync(source).GetAwaiter().GetResult()).Result;
                     UniversityParser parser = new UniversityParser(new Schedule());
 
-                    Schedule = parser.Parse(document);
+                    Schedule = parser.ParseSchedule(document);
+                    Title = "Расписание " + Schedule.GroupName;
                 }
             }
         }
