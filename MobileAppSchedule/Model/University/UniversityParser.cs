@@ -13,17 +13,16 @@ namespace MobileAppSchedule.Model.University
     {
         Schedule schedule = new Schedule();
 
+        public UniversityParser()
+        {
+            
+        }
         public UniversityParser(Schedule schedule)
         {
             this.schedule = schedule;
         }
 
-        /// <summary>
-        /// Этот метод будет заполнять дни недели
-        /// </summary>
-        /// <param name="document"></param>
-        /// <returns></returns>
-        public Schedule Parse(IHtmlDocument document)
+        public Schedule ParseSchedule(IHtmlDocument document)
         {
             var sourceString = document.Source.Text;
 
@@ -84,6 +83,28 @@ namespace MobileAppSchedule.Model.University
                 });
             }
             return schedule;
+        }
+
+        public List<string> ParseGroupNames(IHtmlDocument document)
+        {
+            var sourceString = document.Source.Text;
+            
+            var array = new Regex("value=\"").Split(sourceString).ToList();
+            array.RemoveAt(0);
+            Regex rg = new Regex(">([\\s\\S]+?)<");
+            
+            var resultList = new List<string>();
+            foreach (var item in array)
+            {
+                var res_string = "tab=7&gp_name=";
+                string id = item.Substring(0, 4);
+                string name = rg.Match(item).ToString().TrimEnd(new char[] { '<' }).TrimStart(new char[] { '>' });
+
+                res_string += name + "&gp_id=" + id;
+                resultList.Add(res_string);
+            }
+
+            return resultList;
         }
     }
 }

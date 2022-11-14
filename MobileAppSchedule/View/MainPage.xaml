@@ -6,23 +6,21 @@
              xmlns:fontAwesome="clr-namespace:FontAwesome;assembly=MobileAppSchedule"
              Title="{Binding Title}">
 
+    <ContentPage.BindingContext>
+        <vms:MainViewModel/>
+    </ContentPage.BindingContext>
     <ContentPage.Content>
         <StackLayout>
             <StackLayout Orientation="Horizontal">
 
-                <Label x:Name="GroupName" FontFamily="NSB" FontSize="30" 
-                       Text="{Binding GroupName}"
-                       VerticalOptions="Start" 
-                       HorizontalOptions="Start" />
             </StackLayout>
-            <RefreshView IsRefreshing="{Binding IsBusy, Mode=TwoWay}">
-                <!--<ListView ItemsSource="{Binding }">
-                </ListView>-->
+            <RefreshView IsRefreshing="{Binding IsBusy, Mode=OneWay}"
+                         Command="{Binding RefreshCommand}">
                 <CollectionView ItemsSource="{Binding Disciplines, Mode=TwoWay}" EmptyView="{Binding EmptyView}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate >
-                            <Grid RowDefinitions="*,*,*,*" ColumnDefinitions="Auto,*" Padding="15">
-                                <Image Grid.Row="0" Grid.Column="0" Grid.RowSpan="3" Source="Fuel" Margin="0,0,20,0"/>
+                            <Grid RowDefinitions="*,*,*,*" ColumnDefinitions="Auto,*" Padding="10">
+                                <Image Grid.Row="0" Grid.Column="0" Grid.RowSpan="3" Source="Fuel" Margin="0,0,10,0"/>
                                 <Label Grid.Row="0" Grid.Column="1" Text="{Binding NameOfDiscipline}" TextColor="Black" FontAttributes="Bold" FontSize="16" />
                                 <Label Grid.Row="1" Grid.Column="1" Text="{Binding Frequency}" TextColor="Black" FontAttributes="Bold" FontSize="16" />
                                 <Label Grid.Row="2" Grid.Column="1" Text="{Binding NameOfTeacher}" FontSize="15"/>
