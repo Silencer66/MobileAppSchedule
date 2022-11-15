@@ -83,6 +83,7 @@ namespace MobileAppSchedule.ViewModel
             RefreshCommand = new AsyncCommand(Refresh);
             #endregion
         }
+
         async Task Refresh()
         {
             IsBusy = true;
@@ -91,7 +92,6 @@ namespace MobileAppSchedule.ViewModel
 
             IsBusy = false;
         }
-
 
         public void OnAppearing()
         {

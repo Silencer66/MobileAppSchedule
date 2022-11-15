@@ -12,6 +12,7 @@ using MobileAppSchedule.Model.Worker;
 using System.Net.Http;
 using System.Net;
 using System;
+using MvvmHelpers.Commands;
 using Path = System.IO.Path;
 
 namespace MobileAppSchedule.ViewModel
@@ -25,7 +26,7 @@ namespace MobileAppSchedule.ViewModel
 
         #endregion
 
-        #region Свойства
+        #region Properties
 
         #region GroupNames
         public ObservableCollection<string> GroupNames { get; set; }
@@ -67,7 +68,11 @@ namespace MobileAppSchedule.ViewModel
         #endregion
 
         #endregion
-        
+
+        #region Commands
+
+        private AsyncCommand RefreshCommand { get; }
+        #endregion
 
         public SettingsViewModel()
         {
@@ -78,10 +83,21 @@ namespace MobileAppSchedule.ViewModel
             Title = "Расписание";
             #endregion
 
-            #region Команды
+            #region Commands
+
+            RefreshCommand = new AsyncCommand(Refresh);
+
             #endregion
         }
 
+        async Task Refresh()
+        {
+            IsBusy = true;
+
+            OnAppearing();
+
+            IsBusy = false;
+        }
 
         /// <summary> Парсит расписание по выбранной группе </summary>
         private async void GetScheduleAsync()
@@ -100,7 +116,7 @@ namespace MobileAppSchedule.ViewModel
             worker.OnGroupSchedule += OnNewSchedule;
             await worker.LoadScheduleByGroupName(GroupNames.IndexOf(_selectedGroup));
         }
-     
+        
         
         public async void OnAppearing()
         {
