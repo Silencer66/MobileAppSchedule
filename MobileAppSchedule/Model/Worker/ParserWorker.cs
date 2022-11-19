@@ -61,9 +61,9 @@ namespace MobileAppSchedule.Model.Worker
         /// <param name="index"></param>
         /// <returns></returns>
         /// 
-        public async Task LoadScheduleByGroupName(int index)
+        public async Task LoadScheduleByGroupName(string payload)
         {
-            await GetSchedule(index);
+            await GetSchedule(payload);
         }
         public async Task LoadGroupNames()
         {
@@ -81,9 +81,9 @@ namespace MobileAppSchedule.Model.Worker
             }
             OnGroups?.Invoke(this, source);
         }
-        public async Task GetSchedule(int index)
+        public async Task GetSchedule(string payload)
         {
-            var source = await loader.GetScheduleByGroupName(parserSettings.GroupNames[index]);
+            var source = await loader.GetScheduleByGroupName(payload);
             if (source == "Ответ пустой")
             {
                 OnGroupSchedule?.Invoke(this, "Ответ пустой");
