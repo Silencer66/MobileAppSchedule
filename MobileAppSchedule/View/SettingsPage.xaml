@@ -6,25 +6,19 @@
              xmlns:fontAwesome="clr-namespace:FontAwesome;assembly=MobileAppSchedule"
              xmlns:xct="http://xamarin.com/schemas/2020/toolkit"
              Title="{Binding Title}">
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <xct: x:Key="ItemSelectedEventArgsConverter"/>
-        </ResourceDictionary>
-    </ContentPage.Resources>
+    
     <ContentPage.BindingContext>
         <vms:SettingsViewModel/>
     </ContentPage.BindingContext>
 
     <StackLayout HorizontalOptions="CenterAndExpand">
-        <!--<SearchBar Placeholder="Введите имя группы"
+        <SearchBar Placeholder="Введите имя группы"
                    PlaceholderColor="{StaticResource Primary}"
-                   HorizontalTextAlignment="Center">
-                <SearchBar.Behaviors>
-                    <xct:EventToCommandBehavior
-                        EventName="TextChanged"
-                        Command="{Binding SearchBarCommand}"/>
-                </SearchBar.Behaviors>
-        </SearchBar>-->
+                   HorizontalTextAlignment="Center"
+                   x:Name="SrcBar"
+                   Text="{Binding TextSearchBar}">
+        </SearchBar>
+
         <RefreshView IsRefreshing="{Binding IsBusy}"
                      Command="{Binding RefreshCommand}"
                      HorizontalOptions="Center">
