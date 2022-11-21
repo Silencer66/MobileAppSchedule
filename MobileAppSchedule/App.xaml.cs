@@ -1,4 +1,5 @@
-﻿using Xamarin.Forms;
+﻿using MobileAppSchedule.View;
+using Xamarin.Forms;
 
 namespace MobileAppSchedule
 {

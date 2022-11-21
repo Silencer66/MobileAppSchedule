@@ -21,7 +21,8 @@ namespace MobileAppSchedule.ViewModel
         #region Fields
 
         private List<string> rowGroups;
-        readonly string url = "https://www.madi.ru/tplan/tasks/task3,7_fastview.php";
+        readonly string _urlForGroupNames = "https://www.madi.ru/tplan/tasks/task3,7_fastview.php";
+        readonly string _urlForSchedule = "https://www.madi.ru/tplan/tasks/tableFiller.php";
 
         #endregion
 
@@ -46,6 +47,7 @@ namespace MobileAppSchedule.ViewModel
             }
         }
         #endregion
+
 
 
         #region GroupNames
@@ -102,7 +104,7 @@ namespace MobileAppSchedule.ViewModel
         #region Commands
 
         #region RefreshCommand
-        public MvvmHelpers.Commands.AsyncCommand RefreshCommand { get; set; }
+        public MvvmHelpers.Commands.AsyncCommand RefreshCommand { get; }
         #endregion
 
         #endregion
@@ -137,12 +139,49 @@ namespace MobileAppSchedule.ViewModel
 
         private async Task Refresh()
         {
-            if (rowGroups.Count() > 0)
+            if (GroupNames.Count > 0)
             {
+                IsBusy = true;
                 IsBusy = false;
                 return;
             }
-            OnAppearing();
+
+            if (!App.Current.Properties.ContainsKey("group_list")) //Однократно загружаем список групп c сайта
+            {
+                if (Connectivity.NetworkAccess != NetworkAccess.Internet)
+                {
+                    await App.Current.MainPage.DisplayAlert("Расписание", "Не удается загрузить список групп.\nПроверьте подключение к интернету", "Закрыть");
+                    IsBusy = false;
+                    return;
+                }
+
+                UniversityParser parser = new UniversityParser(Schedule);
+                UniversitySettings settings = new UniversitySettings(rowGroups, url: _urlForGroupNames);
+
+                ParserWorker<Schedule> worker = new ParserWorker<Schedule>(parser, settings);
+                worker.OnGroups += OnListGroups;
+
+                await worker.LoadGroupNames();
+
+                App.Current.Properties["group_list"] = "exists";
+                App.Current.SavePropertiesAsync().GetAwaiter();
+            }
+            else //Загружаем список из памяти
+            {
+                var path = FileSystem.CacheDirectory;
+                var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
+                if (File.Exists(fullpath))
+                {
+                    OnListGroups(this, File.ReadAllText(fullpath));
+                }
+                else
+                {
+                    await App.Current.MainPage.DisplayAlert("Расписание", "Пожалуйста обновите страницу", "Закрыть");
+                    App.Current.Properties.Remove("group_list");
+                    App.Current.SavePropertiesAsync().GetAwaiter();
+                    IsBusy = false;
+                }
+            }
         }
 
         /// <summary> Парсит расписание по выбранной группе </summary>
@@ -150,59 +189,27 @@ namespace MobileAppSchedule.ViewModel
         {
             if (Connectivity.NetworkAccess != NetworkAccess.Internet)
             {
-                App.Current.MainPage.DisplayAlert("Расписание", "Невозможно загрузить расписание выбранной группы.\nПроверьте подключение к интернету", "Закрыть");
+                await App.Current.MainPage.DisplayAlert("Расписание", "Невозможно загрузить расписание выбранной группы.\nПроверьте подключение к интернету", "Закрыть");
                 IsBusy = false;
                 return;
             }
 
-            UniversitySettings settings = new UniversitySettings(rowGroups);
+            UniversitySettings settings = new UniversitySettings(rowGroups, url: _urlForSchedule);
             UniversityParser parser = new UniversityParser(_schedule);
             ParserWorker<Schedule> worker = new ParserWorker<Schedule>(parser, settings);
 
             worker.OnGroupSchedule += OnNewSchedule;
-            await worker.LoadScheduleByGroupName(rowGroups.Where(a=>a.Contains(_selectedGroup.GroupName)).FirstOrDefault());
+            await worker.LoadScheduleByGroupName(rowGroups.Where(a => a.Contains(_selectedGroup.GroupName)).FirstOrDefault());
         }
 
 
-        public async void OnAppearing()
+        public void OnAppearing()
         {
             object name = "";
             App.Current.Properties.TryGetValue("group_name", out name);
-            if(name != null && string.IsNullOrEmpty(name.ToString()))
+            if (name != null && string.IsNullOrEmpty(name.ToString()))
                 Title = "Расписание " + App.Current.Properties["group_name"];
-            if (!IsBusy)
-            {
-                if (GroupNames.Count > 0)
-                    return;
-                IsBusy = true;
-                if (!App.Current.Properties.ContainsKey("group_list")) //Однократно загружаем список групп c сайта
-                {
-                    if (Connectivity.NetworkAccess != NetworkAccess.Internet)
-                    {
-                        App.Current.MainPage.DisplayAlert("Расписание", "Не удается загрузить список групп.\nПроверьте подключение к интернету", "Закрыть");
-                        IsBusy = false;
-                        return;
-                    }
-
-                    UniversityParser parser = new UniversityParser(Schedule);
-                    UniversitySettings settings = new UniversitySettings(rowGroups);
-
-                    ParserWorker<Schedule> worker = new ParserWorker<Schedule>(parser, settings);
-                    worker.OnGroups += OnListGroups;
-
-                    await worker.LoadGroupNames();
-
-                    App.Current.Properties["group_list"] = "exists";
-                    App.Current.SavePropertiesAsync().GetAwaiter();
-                }
-                else //Загружаем список из памяти
-                {
-                    var path = FileSystem.CacheDirectory;
-                    var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
-
-                    OnListGroups(this, File.ReadAllText(fullpath));
-                }
-            }
+            IsBusy = true;
         }
 
         private void OnNewSchedule(object obj, string source)
@@ -211,11 +218,16 @@ namespace MobileAppSchedule.ViewModel
             var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
             File.WriteAllText(fullpath, source);
             Title = "Расписание " + SelectedGroup.GroupName;
+            TextSearchBar = "";
             IsBusy = false;
         }
 
         private async void OnListGroups(object obj, string source)
         {
+
+            var path = FileSystem.CacheDirectory;
+            var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
+            File.WriteAllText(fullpath, source);
             UniversityParser parser = new UniversityParser();
 
             var domParser = new HtmlParser();

@@ -35,8 +35,10 @@
     <PackageReference Include="AngleSharp" Version="0.17.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Refractored.MvvmHelpers" Version="1.6.2" />
+    <PackageReference Include="Xamarin.CommunityToolkit" Version="2.0.5" />
     <PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
     <PackageReference Include="Xamarin.Essentials" Version="1.7.3" />
+    <PackageReference Include="XCalendar.Forms" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup>

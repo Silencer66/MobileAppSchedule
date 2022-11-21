@@ -13,15 +13,17 @@
 
     <StackLayout HorizontalOptions="CenterAndExpand">
         <SearchBar Placeholder="Введите имя группы"
+                   CancelButtonColor="Purple"
                    PlaceholderColor="{StaticResource Primary}"
                    HorizontalTextAlignment="Center"
                    x:Name="SrcBar"
-                   Text="{Binding TextSearchBar}">
+                   Text="{Binding TextSearchBar}"
+                   TextColor="Black">
         </SearchBar>
 
-        <RefreshView IsRefreshing="{Binding IsBusy}"
+        <RefreshView IsRefreshing="{Binding IsBusy, Mode=OneWay}"
                      Command="{Binding RefreshCommand}"
-                     HorizontalOptions="Center">
+                     HorizontalOptions="Center" >
 
             <ListView ItemsSource="{Binding GroupNames}"
                       SelectedItem="{Binding SelectedGroup}"
@@ -49,7 +51,6 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-
         </RefreshView>
     </StackLayout>
 </ContentPage>
