@@ -11,6 +11,10 @@ using BaseViewModel = MobileAppSchedule.ViewModel.Base.BaseViewModel;
 using XCalendar.Core.Models;
 using XCalendar.Core.Enums;
 using System;
+using System.Linq;
+using MobileAppSchedule.Model;
+using Xamarin.Forms;
+using Command = MvvmHelpers.Commands.Command;
 
 namespace MobileAppSchedule.ViewModel
 {
@@ -31,9 +35,15 @@ namespace MobileAppSchedule.ViewModel
         }
         public MvvmHelpers.ObservableRangeCollection<Calendar<CalendarDay>> Calendars { get; set; } = new MvvmHelpers.ObservableRangeCollection<Calendar<CalendarDay>>();
 
+        #region Disciplines
         public MvvmHelpers.ObservableRangeCollection<Discipline> Disciplines { get; set; }
 
-        public MvvmHelpers.ObservableRangeCollection<DayOfWeek> Weekday { get; set; }
+        #endregion
+
+        #region Weekday
+        public MyObservableCollection<DayOfWeek> Weekday { get; set; }
+
+        #endregion
 
         #region GroupName
         private string _groupName;
@@ -45,7 +55,7 @@ namespace MobileAppSchedule.ViewModel
         #endregion
 
         #region CurrentDay
-        public Discipline CurrentDay { get; set; }
+        public DayOfWeek CurrentDay { get; set; }
         #endregion
 
         #region Schedule
@@ -64,7 +74,32 @@ namespace MobileAppSchedule.ViewModel
 
                 //на понедельник (переопределить индексатор)
                 Disciplines.Clear();
-                Disciplines.AddRange(_schedule.Weekday[0].Disciplines);
+                var currentDayOfWeek = CurrentPageCalendar.TodayDate.DayOfWeek;
+                switch (currentDayOfWeek)
+                {
+                    case System.DayOfWeek.Monday:
+                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Понедельник").FirstOrDefault();
+                        break;
+                    case System.DayOfWeek.Tuesday:
+                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Вторник").FirstOrDefault();
+                        break;
+                    case System.DayOfWeek.Wednesday:
+                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Среда").FirstOrDefault();
+                        break;
+                    case System.DayOfWeek.Thursday:
+                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Четверг").FirstOrDefault();
+                        break;
+                    case System.DayOfWeek.Friday:
+                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Пятница").FirstOrDefault();
+                        break;
+                    case System.DayOfWeek.Saturday:
+                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Суббота").FirstOrDefault();
+                        break;
+                    case System.DayOfWeek.Sunday:
+                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Воскресенье").FirstOrDefault();
+                        break;
+                }
+                Disciplines.AddRange(Weekday[CurrentDay].Disciplines);
 
             }
         }
@@ -85,9 +120,10 @@ namespace MobileAppSchedule.ViewModel
 
         public MainViewModel()
         {
-            
-            ChangeDateSelectionCommand = new Command<DateTime>(ChangeDateSelection);
+            #region Commands
+            ChangeDateSelectionCommand = new MvvmHelpers.Commands.Command<DateTime>(ChangeDateSelection);
             CurrentPageCalendarChangedCommand = new Command(CurrentPageCalendarChanged);
+            #endregion
 
             SecondPageCalendar.SelectedDates = FirstPageCalendar.SelectedDates;
             SecondPageCalendar.DayNamesOrder = FirstPageCalendar.DayNamesOrder;
@@ -108,8 +144,12 @@ namespace MobileAppSchedule.ViewModel
             #region Fields
             Title = "Расписание";
             _schedule = new Schedule();
-            Weekday = new MvvmHelpers.ObservableRangeCollection<DayOfWeek>();
+            Weekday = new MyObservableCollection<DayOfWeek>();
             Disciplines = new MvvmHelpers.ObservableRangeCollection<Discipline>();
+
+            CurrentPageCalendar.AutoRows = false;
+            CurrentPageCalendar.Rows = 5;
+            CurrentPageCalendar.SelectionType = SelectionType.Single;
             #endregion
 
             #region Commands
@@ -158,7 +198,6 @@ namespace MobileAppSchedule.ViewModel
         {
             await RefreshCommand.ExecuteAsync();
         }
-
 
 
         public void ChangeDateSelection(DateTime DateTime)
