@@ -13,7 +13,6 @@ using XCalendar.Core.Enums;
 using System;
 using System.Linq;
 using MobileAppSchedule.Model;
-using Xamarin.Forms;
 using Command = MvvmHelpers.Commands.Command;
 
 namespace MobileAppSchedule.ViewModel
@@ -34,6 +33,20 @@ namespace MobileAppSchedule.ViewModel
             }
         }
         public MvvmHelpers.ObservableRangeCollection<Calendar<CalendarDay>> Calendars { get; set; } = new MvvmHelpers.ObservableRangeCollection<Calendar<CalendarDay>>();
+
+        #region EmptyView
+
+        private string _emptyView;
+        public string EmptyView
+        {
+            get => _emptyView;
+            set 
+            {
+                Set(ref _emptyView, value);
+            }
+        }
+
+        #endregion
 
         #region Disciplines
         public MvvmHelpers.ObservableRangeCollection<Discipline> Disciplines { get; set; }
@@ -75,32 +88,13 @@ namespace MobileAppSchedule.ViewModel
                 //на понедельник (переопределить индексатор)
                 Disciplines.Clear();
                 var currentDayOfWeek = CurrentPageCalendar.TodayDate.DayOfWeek;
-                switch (currentDayOfWeek)
+                ChangeCurrentDayOfWeek(currentDayOfWeek);
+                if (CurrentDay == null)
                 {
-                    case System.DayOfWeek.Monday:
-                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Понедельник").FirstOrDefault();
-                        break;
-                    case System.DayOfWeek.Tuesday:
-                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Вторник").FirstOrDefault();
-                        break;
-                    case System.DayOfWeek.Wednesday:
-                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Среда").FirstOrDefault();
-                        break;
-                    case System.DayOfWeek.Thursday:
-                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Четверг").FirstOrDefault();
-                        break;
-                    case System.DayOfWeek.Friday:
-                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Пятница").FirstOrDefault();
-                        break;
-                    case System.DayOfWeek.Saturday:
-                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Суббота").FirstOrDefault();
-                        break;
-                    case System.DayOfWeek.Sunday:
-                        CurrentDay = Weekday.Where(a => a.NameOfDay == "Воскресенье").FirstOrDefault();
-                        break;
+                    EmptyView = "На этот день занятий нет!";
+                    return;
                 }
                 Disciplines.AddRange(Weekday[CurrentDay].Disciplines);
-
             }
         }
         #endregion
@@ -147,9 +141,11 @@ namespace MobileAppSchedule.ViewModel
             Weekday = new MyObservableCollection<DayOfWeek>();
             Disciplines = new MvvmHelpers.ObservableRangeCollection<Discipline>();
 
+
             CurrentPageCalendar.AutoRows = false;
             CurrentPageCalendar.Rows = 5;
             CurrentPageCalendar.SelectionType = SelectionType.Single;
+            
             #endregion
 
             #region Commands
@@ -167,42 +163,92 @@ namespace MobileAppSchedule.ViewModel
 
         async Task Refresh()
         {
-            IsBusy = true;
-
-            //загружаем список из памяти и распаршиваем в объекты 
-            object name = "";
-            App.Current.Properties.TryGetValue("group_name", out name);
-            if (name == null || name.ToString() != GroupName)
+            if (IsBusy == false)
             {
-                var path = FileSystem.CacheDirectory;
-                var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
-
-                if (File.Exists(fullpath))
+                IsBusy = true;
+                //загружаем список из памяти и распаршиваем в объекты 
+                object name = "";
+                App.Current.Properties.TryGetValue("group_name", out name);
+                if (name == null)
                 {
-                    var source = File.ReadAllText(fullpath);
-                    var domParser = new HtmlParser();
+                    EmptyView = "Расписание пусто, пожалуйста выберите группу";
+                    IsBusy = false;
+                    return;
+                }
 
-                    ///
-                    var document = await domParser.ParseDocumentAsync(source);
-                    UniversityParser parser = new UniversityParser(new Schedule());
+                if (name.ToString() != GroupName)
+                {
+                    var path = FileSystem.CacheDirectory;
+                    var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
 
-                    Schedule = parser.ParseSchedule(document);
-                    Title = "Расписание " + Schedule.GroupName;
+                    if (File.Exists(fullpath))
+                    {
+                        var source = File.ReadAllText(fullpath);
+                        var domParser = new HtmlParser();
+
+                        var document = await domParser.ParseDocumentAsync(source);
+                        UniversityParser parser = new UniversityParser(new Schedule());
+
+                        Schedule = parser.ParseSchedule(document);
+                        Title = "Расписание " + Schedule.GroupName;
+                    }
+                    
                 }
             }
-
             IsBusy = false;
         }
 
-        public async void OnAppearing()
+        public Task OnAppearing()
         {
-            await RefreshCommand.ExecuteAsync();
+            return Refresh();
         }
 
-
+        /// <summary>Возникате при изменении даты в календаре</summary>
+        /// <param name="DateTime"></param>
         public void ChangeDateSelection(DateTime DateTime)
         {
+            CurrentPageCalendar.SelectedDates.Clear();
             CurrentPageCalendar.ChangeDateSelection(DateTime);
+
+            //реализуем смену расписания
+            var currnetDayOfWeek = CurrentPageCalendar.SelectedDates[0].DayOfWeek;
+            
+            ChangeCurrentDayOfWeek(currnetDayOfWeek);
+            Disciplines.Clear();
+            if (CurrentDay == null)
+            {
+                EmptyView = "На сегодня не занятий!";
+                return;
+            }
+            Disciplines.AddRange(Weekday[CurrentDay].Disciplines);
+        }
+
+        private void ChangeCurrentDayOfWeek(System.DayOfWeek currentDayOfWeek)
+        {
+            switch (currentDayOfWeek)
+            {
+                case System.DayOfWeek.Monday:
+                    CurrentDay = Weekday.Where(a => a.NameOfDay == "Понедельник").FirstOrDefault();
+                    break;
+                case System.DayOfWeek.Tuesday:
+                    CurrentDay = Weekday.Where(a => a.NameOfDay == "Вторник").FirstOrDefault();
+                    break;
+                case System.DayOfWeek.Wednesday:
+                    CurrentDay = Weekday.Where(a => a.NameOfDay == "Среда").FirstOrDefault();
+                    break;
+                case System.DayOfWeek.Thursday:
+                    CurrentDay = Weekday.Where(a => a.NameOfDay == "Четверг").FirstOrDefault();
+                    break;
+                case System.DayOfWeek.Friday:
+                    CurrentDay = Weekday.Where(a => a.NameOfDay == "Пятница").FirstOrDefault();
+                    break;
+                case System.DayOfWeek.Saturday:
+                    CurrentDay = Weekday.Where(a => a.NameOfDay == "Суббота").FirstOrDefault();
+                    break;
+                case System.DayOfWeek.Sunday:
+                    CurrentDay = Weekday.Where(a => a.NameOfDay == "Воскресенье").FirstOrDefault();
+                    break;
+            }
         }
         public void CurrentPageCalendarChanged()
         {

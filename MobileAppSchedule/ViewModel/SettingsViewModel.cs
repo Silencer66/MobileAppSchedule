@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using MobileAppSchedule.ViewModel.Base;
 using System.Threading.Tasks;
@@ -124,18 +123,6 @@ namespace MobileAppSchedule.ViewModel
 
             #endregion
         }
-
-        //private void OnSearchBarCommand(object arg)
-        //{
-        //    var letter = arg.ToString();
-        //    if (string.IsNullOrEmpty(letter))
-        //    {
-        //        GetGroupNames(rowGroups);
-        //        return;
-        //    }
-        //    var groups = rowGroups.Where(x => x.Contains(letter.ToUpper()));
-        //    //GroupNames = new ObservableCollection<Group>(groups);
-        //}
 
         private async Task Refresh()
         {
