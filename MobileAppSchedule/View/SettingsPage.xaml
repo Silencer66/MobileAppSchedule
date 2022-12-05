@@ -5,15 +5,15 @@
              xmlns:vms="clr-namespace:MobileAppSchedule.ViewModel"
              xmlns:fontAwesome="clr-namespace:FontAwesome;assembly=MobileAppSchedule"
              xmlns:xct="http://xamarin.com/schemas/2020/toolkit"
-             Title="{Binding Title}">
-    
+             Title="{Binding Title}"
+             x:Name="SettingsPageVM">
+
     <ContentPage.BindingContext>
         <vms:SettingsViewModel/>
     </ContentPage.BindingContext>
 
     <StackLayout HorizontalOptions="CenterAndExpand">
         <SearchBar Placeholder="Введите имя группы"
-                   CancelButtonColor="Purple"
                    PlaceholderColor="{StaticResource Primary}"
                    HorizontalTextAlignment="Center"
                    x:Name="SrcBar"
@@ -21,11 +21,11 @@
                    TextColor="Black">
         </SearchBar>
 
-        <RefreshView IsRefreshing="{Binding IsBusy, Mode=OneWay}"
-                     Command="{Binding RefreshCommand}"
-                     HorizontalOptions="Center" >
+        <RefreshView Command="{Binding RefreshCommand}"
+                     HorizontalOptions="Center"
+                     IsRefreshing="{Binding IsBusy, Mode=OneWay}">
 
-            <ListView ItemsSource="{Binding GroupNames}"
+            <ListView ItemsSource="{Binding GroupNamesForView}"
                       SelectedItem="{Binding SelectedGroup}"
                       SeparatorVisibility="None"
                       xct:CornerRadiusEffect.CornerRadius="20">
@@ -40,11 +40,15 @@
                                            HorizontalTextAlignment="Start"
                                            Margin="10,0,0,0"/>
                                 </StackLayout>
+
                                 <StackLayout Grid.Column="1" VerticalOptions="Center">
                                     <ImageButton HorizontalOptions="End"
                                                  Margin="5,0,10, 0"
-                                                 Source="star.png"
-                                                 BackgroundColor="Transparent"/>
+                                                 BackgroundColor="Transparent"
+                                                 Source="{Binding FavouriteImage}"
+                                                 Command="{Binding Source={x:RelativeSource AncestorType={x:Type vms:SettingsViewModel}}, Path=AddToFavouriteCommand}"
+                                                 CommandParameter="{Binding Path=GroupName}">
+                                    </ImageButton>
                                 </StackLayout>
                             </Grid>
                         </ViewCell>

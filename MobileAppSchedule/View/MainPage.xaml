@@ -85,8 +85,7 @@
                                     Text="{Binding NavigatedDate, StringFormat='{0:MMMM yyyy}'}"/>
                                 </Frame>
                                 <Frame Grid.Row="1" Padding="0"
-                                       CornerRadius="15"
-                                       >
+                                       CornerRadius="15">
                                     <xc:CalendarView
                                         Days="{Binding Days}"
                                         DaysOfWeek="{Binding DayNamesOrder}"
@@ -144,8 +143,14 @@
                                     <StackLayout Style="{StaticResource itemsCardViewStackLayoutStyle}">
                                         <StackLayout Style="{StaticResource itemsInsideCardViewStackLayoutStyle}">
                                             <StackLayout Style="{StaticResource detailsStackLayout}">
-                                                <Label Text="{Binding NameOfDiscipline}" Style="{StaticResource NameLabel}" />
-                                                <StackLayout Style="{StaticResource imageLableStackLayout}">
+                                                <StackLayout Orientation="Horizontal">
+                                                    <Label Text="{Binding NameOfDiscipline}" Style="{StaticResource NameLabel}"/>
+                                                    <Label Text="{Binding TypeDescipline}" 
+                                                           Style="{StaticResource LabelStyle}"
+                                                           VerticalTextAlignment="Center"/>
+                                                </StackLayout>
+                                                <StackLayout Style="{StaticResource imageLableStackLayout}"
+                                                             Orientation="Horizontal">
                                                     <Label Text="{Binding Period}" Style="{StaticResource LabelStyle}" />
                                                 </StackLayout>
                                                 <StackLayout Style="{StaticResource imageLableStackLayout}">

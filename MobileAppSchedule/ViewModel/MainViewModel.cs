@@ -14,12 +14,15 @@ using System;
 using System.Linq;
 using MobileAppSchedule.Model;
 using Command = MvvmHelpers.Commands.Command;
+using System.Globalization;
 
 namespace MobileAppSchedule.ViewModel
 {
     internal class MainViewModel : BaseViewModel
     {
+
         #region Properties
+        private string CurrentFrequency { get; set; }
 
         public Calendar<CalendarDay> FirstPageCalendar { get; set; } = new Calendar<CalendarDay>() { SelectionAction = SelectionAction.Modify, SelectionType = SelectionType.Single };
         public Calendar<CalendarDay> SecondPageCalendar { get; set; } = new Calendar<CalendarDay>() { SelectionAction = SelectionAction.Modify, SelectionType = SelectionType.Single };
@@ -40,7 +43,7 @@ namespace MobileAppSchedule.ViewModel
         public string EmptyView
         {
             get => _emptyView;
-            set 
+            set
             {
                 Set(ref _emptyView, value);
             }
@@ -94,7 +97,10 @@ namespace MobileAppSchedule.ViewModel
                     EmptyView = "На этот день занятий нет!";
                     return;
                 }
-                Disciplines.AddRange(Weekday[CurrentDay].Disciplines);
+                Disciplines.AddRange(Weekday[CurrentDay].Disciplines.Where(a=>a.Frequency=="Еженедельно" 
+                                                                              || a.Frequency=="Знам. 1 раз в месяц"
+                                                                              || a.Frequency=="Числ. 1 раз в месяц"
+                                                                              || a.Frequency==CurrentFrequency));
             }
         }
         #endregion
@@ -134,18 +140,16 @@ namespace MobileAppSchedule.ViewModel
             UpdateCalendarPages();
 
 
-
             #region Fields
             Title = "Расписание";
             _schedule = new Schedule();
             Weekday = new MyObservableCollection<DayOfWeek>();
             Disciplines = new MvvmHelpers.ObservableRangeCollection<Discipline>();
 
-
             CurrentPageCalendar.AutoRows = false;
             CurrentPageCalendar.Rows = 5;
             CurrentPageCalendar.SelectionType = SelectionType.Single;
-            
+
             #endregion
 
             #region Commands
@@ -163,64 +167,89 @@ namespace MobileAppSchedule.ViewModel
 
         async Task Refresh()
         {
-            if (IsBusy == false)
+            IsBusy = true;
+            //загружаем список из памяти и распаршиваем в объекты 
+            object name = "";
+            App.Current.Properties.TryGetValue("group_name", out name);
+            if (name == null)
             {
-                IsBusy = true;
-                //загружаем список из памяти и распаршиваем в объекты 
-                object name = "";
-                App.Current.Properties.TryGetValue("group_name", out name);
-                if (name == null)
-                {
-                    EmptyView = "Расписание пусто, пожалуйста выберите группу";
-                    IsBusy = false;
-                    return;
-                }
+                EmptyView = "Расписание пусто, пожалуйста выберите группу";
+                IsBusy = false;
+                return;
+            }
 
-                if (name.ToString() != GroupName)
-                {
-                    var path = FileSystem.CacheDirectory;
-                    var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
+            if (name.ToString() != GroupName)
+            {
+                var path = FileSystem.CacheDirectory;
+                var fullpath = Path.Combine(path, "mobileschedule_schedule.txt");
 
-                    if (File.Exists(fullpath))
+                if (File.Exists(fullpath))
+                {
+                    var source = File.ReadAllText(fullpath);
+                    if (!source.Contains("Группа"))
                     {
-                        var source = File.ReadAllText(fullpath);
-                        var domParser = new HtmlParser();
-
-                        var document = await domParser.ParseDocumentAsync(source);
-                        UniversityParser parser = new UniversityParser(new Schedule());
-
-                        Schedule = parser.ParseSchedule(document);
-                        Title = "Расписание " + Schedule.GroupName;
+                        EmptyView = source;
+                        IsBusy = false;
+                        return;
                     }
                     
+                    DateTime currentDate = DateTime.Now;
+                    GetCurrentFrequency(currentDate);
+
+                    var domParser = new HtmlParser();
+                    var document = await domParser.ParseDocumentAsync(source);
+                    UniversityParser parser = new UniversityParser(new Schedule());
+
+                    Schedule = parser.ParseSchedule(document);
+                    Title = "Расписание " + Schedule.GroupName;
                 }
             }
             IsBusy = false;
         }
 
-        public Task OnAppearing()
+        private void GetCurrentFrequency(DateTime date)
         {
-            return Refresh();
+            
+            int firstDayOfYear = (int)new DateTime(date.Year, 1, 1).DayOfWeek;
+            int weekNumber = (date.DayOfYear + firstDayOfYear) / 7;
+            if (weekNumber % 2 == 1)
+            {
+                CurrentFrequency = "Числитель";
+            }
+            else
+            {
+                CurrentFrequency = "Знаменатель";
+            }
+        }
+
+        public void OnAppearing()
+        {
+            RefreshCommand.ExecuteAsync();
         }
 
         /// <summary>Возникате при изменении даты в календаре</summary>
         /// <param name="DateTime"></param>
-        public void ChangeDateSelection(DateTime DateTime)
+        public void ChangeDateSelection(DateTime dateTime)
         {
             CurrentPageCalendar.SelectedDates.Clear();
-            CurrentPageCalendar.ChangeDateSelection(DateTime);
+            CurrentPageCalendar.ChangeDateSelection(dateTime);
 
             //реализуем смену расписания
-            var currnetDayOfWeek = CurrentPageCalendar.SelectedDates[0].DayOfWeek;
+            var currentDayOfWeek = CurrentPageCalendar.SelectedDates[0].DayOfWeek;
+
+            GetCurrentFrequency(dateTime);
+            ChangeCurrentDayOfWeek(currentDayOfWeek);
             
-            ChangeCurrentDayOfWeek(currnetDayOfWeek);
             Disciplines.Clear();
             if (CurrentDay == null)
             {
                 EmptyView = "На сегодня не занятий!";
                 return;
             }
-            Disciplines.AddRange(Weekday[CurrentDay].Disciplines);
+            Disciplines.AddRange(Weekday[CurrentDay].Disciplines.Where(a => a.Frequency == "Еженедельно"
+                                                                            || a.Frequency == "Знам. 1 раз в месяц"
+                                                                            || a.Frequency == "Числ. 1 раз в месяц"
+                                                                            || a.Frequency == CurrentFrequency));
         }
 
         private void ChangeCurrentDayOfWeek(System.DayOfWeek currentDayOfWeek)

@@ -11,6 +11,7 @@ namespace MobileAppSchedule
 
             Routing.RegisterRoute(nameof(MainPage),typeof(MainPage));
             Routing.RegisterRoute(nameof(SettingsPage), typeof(SettingsPage));
+            Routing.RegisterRoute(nameof(FavouritesGroupsPage), typeof(FavouritesGroupsPage));
         }
     }
 }

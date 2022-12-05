@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MobileAppSchedule.View.FavouritesGroupsPage"
+             xmlns:vms="clr-namespace:MobileAppSchedule.ViewModel"
+             xmlns:xct="http://xamarin.com/schemas/2020/toolkit"
+             Title="{Binding Title}">
+    <ContentPage.BindingContext>
+        <vms:FavouritesGroupsViewModel/>
+    </ContentPage.BindingContext>
+
+    <ContentPage.Content>
+        <StackLayout>
+            <SearchBar Placeholder="Введите имя группы"
+                   PlaceholderColor="{StaticResource Primary}"
+                   HorizontalTextAlignment="Center"
+                   x:Name="SrcBar"
+                   Text="{Binding TextSearchBar}"
+                   TextColor="Black">
+            </SearchBar>
+
+            <RefreshView Command="{Binding RefreshCommand}"
+                     HorizontalOptions="Center"
+                     IsRefreshing="{Binding IsBusy, Mode=OneWay}">
+
+                <ListView ItemsSource="{Binding FavouritesGroups}"
+                      SelectedItem="{Binding SelectedGroup}"
+                      SeparatorVisibility="None"
+                      xct:CornerRadiusEffect.CornerRadius="20">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <ViewCell>
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <StackLayout Grid.Column="0" VerticalOptions="Center">
+                                        <Label Text="{Binding GroupName}"
+                                           TextColor="Black"
+                                           FontFamily="FAR"
+                                           HorizontalTextAlignment="Start"
+                                           Margin="10,0,0,0"/>
+                                    </StackLayout>
+
+                                    <StackLayout Grid.Column="1" VerticalOptions="Center">
+                                        <ImageButton HorizontalOptions="End"
+                                                 Margin="5,0,10, 0"
+                                                 BackgroundColor="Transparent"
+                                                 Source="{Binding FavouriteImage}"
+                                                 Command="{Binding Source={x:RelativeSource AncestorType={x:Type vms:FavouritesGroupsViewModel}}, Path=RemoveFavouriteCommand}"
+                                                 CommandParameter="{Binding Path=GroupName}">
+                                        </ImageButton>
+                                    </StackLayout>
+                                </Grid>
+                            </ViewCell>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </RefreshView>
+        </StackLayout>
+    </ContentPage.Content>
+</ContentPage>

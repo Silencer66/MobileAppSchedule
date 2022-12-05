@@ -4,14 +4,18 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using MobileAppSchedule.ViewModel.Base;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using Xamarin.Essentials;
 using AngleSharp.Html.Parser;
 using MobileAppSchedule.Model.University;
 using MobileAppSchedule.Model.Worker;
+using MvvmHelpers;
 using Group = MobileAppSchedule.Model.ScheduleModel.Group;
 using Path = System.IO.Path;
+using Newtonsoft.Json;
+using Xamarin.Forms;
+using BaseViewModel = MobileAppSchedule.ViewModel.Base.BaseViewModel;
 
 namespace MobileAppSchedule.ViewModel
 {
@@ -20,6 +24,7 @@ namespace MobileAppSchedule.ViewModel
         #region Fields
 
         private List<string> rowGroups;
+        private List<Group> _groupNamesNotForView;
         readonly string _urlForGroupNames = "https://www.madi.ru/tplan/tasks/task3,7_fastview.php";
         readonly string _urlForSchedule = "https://www.madi.ru/tplan/tasks/tableFiller.php";
 
@@ -37,27 +42,26 @@ namespace MobileAppSchedule.ViewModel
                 Set(ref _textSearchBar, value);
                 if (string.IsNullOrEmpty(_textSearchBar))
                 {
-                    GroupNames.Clear();
-                    GetGroupNames(rowGroups);
+                    GroupNamesForView.Clear();
+                    var path = FileSystem.CacheDirectory;
+                    var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
+                    var json = File.ReadAllText(fullpath);
+                    GroupNamesForView.AddRange(_groupNamesNotForView);
                 }
-
                 var letter = _textSearchBar.ToUpper();
-                GroupNames = new ObservableCollection<Group>(GroupNames.Where(x => x.GroupName.ToUpperInvariant().Contains(letter)));
+                GroupNamesForView = new ObservableRangeCollection<Group>(_groupNamesNotForView.Where(x => x.GroupName.ToUpperInvariant().Contains(letter)));
             }
         }
         #endregion
 
-
-
         #region GroupNames
-
-        private ObservableCollection<Group> _groupNames;
-        public ObservableCollection<Group> GroupNames
+        private ObservableRangeCollection<Group> _groupNamesForView;
+        public ObservableRangeCollection<Group> GroupNamesForView
         {
-            get => _groupNames;
+            get => _groupNamesForView;
             set
             {
-                Set(ref _groupNames, value);
+                Set(ref _groupNamesForView, value);
             }
         }
         #endregion
@@ -88,9 +92,6 @@ namespace MobileAppSchedule.ViewModel
                     {
                         App.Current.Properties["group_name"] = _selectedGroup.GroupName;
                         App.Current.SavePropertiesAsync();
-
-                        IsBusy = true;
-
                         GetScheduleAsync();
                     }
                 }
@@ -102,6 +103,10 @@ namespace MobileAppSchedule.ViewModel
 
         #region Commands
 
+        #region AddToFavouriteCommand
+        public ICommand AddToFavouriteCommand { get; }
+        #endregion
+
         #region RefreshCommand
         public MvvmHelpers.Commands.AsyncCommand RefreshCommand { get; }
         #endregion
@@ -112,7 +117,8 @@ namespace MobileAppSchedule.ViewModel
         {
             #region Fields
             Schedule = new Schedule();
-            GroupNames = new ObservableCollection<Group>();
+            GroupNamesForView = new ObservableRangeCollection<Group>();
+            _groupNamesNotForView = new List<Group>();
             rowGroups = new List<string>();
             Title = "Расписание";
             #endregion
@@ -120,19 +126,51 @@ namespace MobileAppSchedule.ViewModel
             #region Commands
 
             RefreshCommand = new MvvmHelpers.Commands.AsyncCommand(Refresh);
+            AddToFavouriteCommand = new Command(AddToFavourite);
 
             #endregion
         }
 
+        private void AddToFavourite(object arg)
+        {
+            var path = FileSystem.CacheDirectory;
+            string groupname = arg.ToString();
+
+            _groupNamesNotForView.Where(a => a.GroupName == groupname).FirstOrDefault().IsFavorite =
+                !_groupNamesNotForView.Where(a => a.GroupName == groupname).FirstOrDefault().IsFavorite;
+
+            if (_groupNamesNotForView.Where(a => a.GroupName == groupname).FirstOrDefault().IsFavorite == true)
+            {
+                GroupNamesForView.Where(a => a.GroupName == groupname).FirstOrDefault().FavouriteImage = "filled_star.png";
+                _groupNamesNotForView.Where(a => a.GroupName == groupname).FirstOrDefault().FavouriteImage = "filled_star.png";
+            }
+            else
+            {
+                _groupNamesNotForView.Where(a => a.GroupName == groupname).FirstOrDefault().FavouriteImage = "star.png";
+                GroupNamesForView.Where(a => a.GroupName == groupname).FirstOrDefault().FavouriteImage = "star.png";
+            }
+            
+            var FavouritesGroups = _groupNamesNotForView.Where(a => a.IsFavorite == true).ToList();
+            var json_favourites = JsonConvert.SerializeObject(FavouritesGroups);
+            var fullpath_for_favourites = Path.Combine(path, "mobileschedule_favourite_groups.txt");
+            File.WriteAllText(fullpath_for_favourites, json_favourites);
+
+            var json = JsonConvert.SerializeObject(_groupNamesNotForView);
+            var fullpath_for_groups = Path.Combine(path, "mobileschedule_groups.txt");
+            File.WriteAllText(fullpath_for_groups, json);
+        }
+
         private async Task Refresh()
         {
-            if (GroupNames.Count > 0)
-            {
-                IsBusy = true;
-                IsBusy = false;
-                return;
-            }
+            await UpdateGroupsAsync();
+        }
 
+        private async Task UpdateGroupsAsync()
+        {
+            
+            IsBusy = true;
+            _groupNamesNotForView.Clear();
+            GroupNamesForView.Clear();
             if (!App.Current.Properties.ContainsKey("group_list")) //Однократно загружаем список групп c сайта
             {
                 if (Connectivity.NetworkAccess != NetworkAccess.Internet)
@@ -151,22 +189,25 @@ namespace MobileAppSchedule.ViewModel
                 await worker.LoadGroupNames();
 
                 App.Current.Properties["group_list"] = "exists";
-                App.Current.SavePropertiesAsync().GetAwaiter();
+                await App.Current.SavePropertiesAsync();
             }
             else //Загружаем список из памяти
             {
+
                 var path = FileSystem.CacheDirectory;
                 var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
                 if (File.Exists(fullpath))
                 {
-                    OnListGroups(this, File.ReadAllText(fullpath));
+                    var json = File.ReadAllText(fullpath);
+                    _groupNamesNotForView = JsonConvert.DeserializeObject<List<Group>>(json);
+                    GroupNamesForView = JsonConvert.DeserializeObject<ObservableRangeCollection<Group>>(json);
+                    IsBusy = false;
                 }
                 else
                 {
                     await App.Current.MainPage.DisplayAlert("Расписание", "Пожалуйста обновите страницу", "Закрыть");
                     App.Current.Properties.Remove("group_list");
-                    App.Current.SavePropertiesAsync().GetAwaiter();
-                    IsBusy = false;
+                    await App.Current.SavePropertiesAsync();
                 }
             }
         }
@@ -177,12 +218,16 @@ namespace MobileAppSchedule.ViewModel
             if (Connectivity.NetworkAccess != NetworkAccess.Internet)
             {
                 await App.Current.MainPage.DisplayAlert("Расписание", "Невозможно загрузить расписание выбранной группы.\nПроверьте подключение к интернету", "Закрыть");
-                IsBusy = false;
                 return;
             }
 
+            var path = FileSystem.CacheDirectory;
+            var fullpath = Path.Combine(path, "mobileschedule_row_groups.txt");
+            var json = File.ReadAllText(fullpath);
+            rowGroups = JsonConvert.DeserializeObject<List<string>>(json);
+
             UniversitySettings settings = new UniversitySettings(rowGroups, url: _urlForSchedule);
-            UniversityParser parser = new UniversityParser(_schedule);
+            UniversityParser parser = new UniversityParser(Schedule);
             ParserWorker<Schedule> worker = new ParserWorker<Schedule>(parser, settings);
 
             worker.OnGroupSchedule += OnNewSchedule;
@@ -194,7 +239,7 @@ namespace MobileAppSchedule.ViewModel
         {
             object name = "";
             App.Current.Properties.TryGetValue("group_name", out name);
-            if (name != null && string.IsNullOrEmpty(name.ToString()))
+            if (name != null && !string.IsNullOrEmpty(name.ToString()))
                 Title = "Расписание " + App.Current.Properties["group_name"];
             IsBusy = true;
         }
@@ -206,22 +251,28 @@ namespace MobileAppSchedule.ViewModel
             File.WriteAllText(fullpath, source);
             Title = "Расписание " + SelectedGroup.GroupName;
             TextSearchBar = "";
-            IsBusy = false;
+
+            App.Current.Properties["group_name"] = SelectedGroup.GroupName;
+            App.Current.SavePropertiesAsync();
         }
 
         private async void OnListGroups(object obj, string source)
         {
-
             var path = FileSystem.CacheDirectory;
             var fullpath = Path.Combine(path, "mobileschedule_groups.txt");
-            File.WriteAllText(fullpath, source);
-            UniversityParser parser = new UniversityParser();
 
+            UniversityParser parser = new UniversityParser();
             var domParser = new HtmlParser();
             var document = await domParser.ParseDocumentAsync(source);
 
             rowGroups = parser.ParseGroupNames(document);
+            var fullpath_for_row_groups = Path.Combine(path, "mobileschedule_row_groups.txt");
+            var json_row_groups = JsonConvert.SerializeObject(rowGroups);
+            File.WriteAllText(fullpath_for_row_groups, json_row_groups);
+
             GetGroupNames(rowGroups);
+            var json = JsonConvert.SerializeObject(_groupNamesNotForView);
+            File.WriteAllText(fullpath, json);
             IsBusy = false;
         }
 
@@ -230,7 +281,10 @@ namespace MobileAppSchedule.ViewModel
         private void GetGroupNames(List<string> names)
         {
             foreach (var groupName in names)
-                GroupNames.Add(new Group(Regex.Matches(groupName, @"[\d\s\w]*")[6].ToString(), false));
+            {
+                GroupNamesForView.Add(new Group(Regex.Matches(groupName, @"[\d\s\w]*")[6].ToString(), false, "star.png"));
+                _groupNamesNotForView.Add(new Group(Regex.Matches(groupName, @"[\d\s\w]*")[6].ToString(), false, "star.png"));
+            }
         }
     }
 }
